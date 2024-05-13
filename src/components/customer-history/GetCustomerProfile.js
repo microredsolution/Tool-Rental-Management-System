@@ -16,9 +16,10 @@ import requestPost, { baseUrl } from "../../../serviceWorker";
 import { Grid, Typography } from "@mui/material";
 import { Stack } from "@mui/system";
 import Router from "next/router";
+import AlertDialog from "../active-inactive/active-inactive-list-results";
 
 export default function GetCustomerProfile(details) {
-
+  const [alertOpen, setAlertOpen] = useState(false)
 
   const onclose = () => {
     details.onClose();
@@ -56,7 +57,7 @@ export default function GetCustomerProfile(details) {
   const deleteCustomer = () => {
     let req = {
       "type": "SP_CALL",
-      "requestId": 1100013,
+      "requestId": 1100003,
       request: {
         "cId": details.cId
       }
@@ -81,15 +82,19 @@ export default function GetCustomerProfile(details) {
 
     })
   }
-
+  const deleteConfirm = () => {
+    setAlertOpen(true)
+  }
+console.log(details);
   return (
     <div>
+      <AlertDialog open={alertOpen} setOpen={setAlertOpen} deleteCustomer={deleteCustomer} cName={data.cName} />
       <Dialog open={details.open} onClose={onclose} fullWidth={true} maxWidth={"sm"}>
         <Stack direction={"row"} justifyContent={"space-between"}></Stack>
         <DialogTitle>
           <Stack direction={"row"} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
             Customer Profile
-            {details.isDelete && <Button sx={{ color: 'red' }} onClick={deleteCustomer}>Delete</Button>}
+            {details.isDelete && <Button sx={{ color: 'red' }} onClick={deleteConfirm}>Delete</Button>}
           </Stack>
         </DialogTitle>
 

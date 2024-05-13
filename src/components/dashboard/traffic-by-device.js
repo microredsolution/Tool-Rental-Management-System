@@ -1,5 +1,5 @@
 import { Doughnut } from 'react-chartjs-2';
-import { Box, Card, CardContent, CardHeader, Divider, Typography, useTheme } from '@mui/material';
+import { Box, Card, CardContent, CardHeader, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from '@mui/material';
 
 export const TrafficByDevice = (props) => {
   const theme = useTheme();
@@ -45,7 +45,7 @@ export const TrafficByDevice = (props) => {
       <CardHeader title="Today Rented" />
       <Divider />
       <CardContent>
-        <Box
+        {/* <Box
           sx={{
             height: 300,
             position: 'relative'
@@ -55,8 +55,33 @@ export const TrafficByDevice = (props) => {
             data={data}
             options={options}
           />
-        </Box>
-       
+        </Box> */}
+        <TableContainer sx={{ mt: 2, overflow: 'scroll' }}>
+          <Table >
+            <TableHead>
+              <TableRow>
+                {
+                  props && props.label.map((item, ind) => (
+                    <TableCell align='center' key={ind}>
+                      <Typography variant='subtitle2' noWrap>{item}</Typography>
+                    </TableCell>
+                  ))
+                }
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                {
+                  props && props.data.map((item, ind) => (
+                    <TableCell align='center' key={ind}>
+                      <Typography variant='h6' noWrap>{item}</Typography>
+                    </TableCell>
+                  ))
+                }
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
       </CardContent>
     </Card>
   );

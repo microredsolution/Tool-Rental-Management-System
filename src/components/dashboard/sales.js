@@ -242,7 +242,7 @@ export const Sales = (props) => {
               <TableRow>
                 {
                   data && data.datasets.map((item, ind) => (
-                    <TableCell>
+                    <TableCell align='center' key={ind}>
                       <Typography variant='subtitle2' noWrap>{item.label}</Typography>
                       <Box sx={{ height: 5, backgroundColor: item.backgroundColor }} />
                     </TableCell>
@@ -254,7 +254,7 @@ export const Sales = (props) => {
               <TableRow>
                 {
                   data && data.datasets.map((item, ind) => (
-                    <TableCell align='center'>
+                    <TableCell align='center' key={ind}>
                       <Typography variant='h6' noWrap>{item.data.reduce((a, b) => a + b, 0)}</Typography>
                     </TableCell>
                   ))

@@ -1,13 +1,13 @@
 import { Doughnut } from 'react-chartjs-2';
-import { Box, Card, CardContent, CardHeader, Divider, Typography, useTheme } from '@mui/material';
+import { Box, Card, CardContent, CardHeader, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from '@mui/material';
 
 export const ReturnPie = (props) => {
   const theme = useTheme();
   const data = {
     datasets: [
       {
-        data: props.data ? props.data  : [],
-        backgroundColor: ['#3F51B5','#3D3635', '#e53935', '#FB8C00','#006A4E','#FFA600','#F75D59','#5865F2',],
+        data: props.data ? props.data : [],
+        backgroundColor: ['#3F51B5', '#3D3635', '#e53935', '#FB8C00', '#006A4E', '#FFA600', '#F75D59', '#5865F2',],
         borderWidth: 8,
         borderColor: '#FFFFFF',
         hoverBorderColor: '#FFFFFF'
@@ -38,14 +38,14 @@ export const ReturnPie = (props) => {
     }
   };
 
-  
+
 
   return (
     <Card {...props}>
       <CardHeader title="Today Returned" />
       <Divider />
       <CardContent>
-        <Box
+        {/* <Box
           sx={{
             height: 300,
             position: 'relative'
@@ -55,8 +55,33 @@ export const ReturnPie = (props) => {
             data={data}
             options={options}
           />
-        </Box>
-       
+        </Box> */}
+        <TableContainer sx={{ mt: 2, overflow: 'scroll' }}>
+          <Table >
+            <TableHead>
+              <TableRow>
+                {
+                  props && props.label.map((item, ind) => (
+                    <TableCell align='center' key={ind}>
+                      <Typography variant='subtitle2' noWrap>{item}</Typography>
+                    </TableCell>
+                  ))
+                }
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                {
+                  props && props.data.map((item, ind) => (
+                    <TableCell align='center' key={ind}>
+                      <Typography variant='h6' noWrap>{item}</Typography>
+                    </TableCell>
+                  ))
+                }
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
       </CardContent>
     </Card>
   );

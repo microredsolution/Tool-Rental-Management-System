@@ -1085,8 +1085,30 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `2300005` (IN `request` JS
     DECLARE cnt int;
     DECLARE i int;
     declare amt decimal(20,2);
-     SET SESSION group_concat_max_len = 1000000;
-	set tcustomer = IFNULL((select count(cId) FROM customermaster where status  = 0 ),0);
+
+    DECLARE itemData JSON;
+	DECLARE items JSON;
+	DECLARE datas JSON;
+	DECLARE fdata JSON;
+	DECLARE icnt int;
+	DECLARE aStock int;
+	DECLARE rentStock int;
+	DECLARE returnStock int;
+	DECLARE pStock int;
+
+  DECLARE j int;
+  DEClARE jcnt int;
+  DECLARE items1 JSON;
+  DECLARE items2 JSON;
+  DECLARE value1 int;
+  DECLARE value2 int;
+  DECLARE itemName varchar(100);
+  DECLARE calc int;
+
+  DECLARE ydata JSON;
+
+    SET SESSION group_concat_max_len = 1000000;
+	  set tcustomer = IFNULL((select count(cId) FROM customermaster where status  = 0 ),0);
     set titems = IFNULL((select count(itemId) FROM items),0);
     set tamount = IFNULL((select sum(amount) FROM paymentcollection ),0);
     set tusers = IFNULL((select count(uId) FROM users where status = 1),0);
@@ -1117,19 +1139,117 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `2300005` (IN `request` JS
         end loop;
        set pielabel =  (select JSON_ARRAYAGG(name) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=1 group by i.itemId) as tbl);
         set piedata =(select JSON_ARRAYAGG(cast(qty as signed)) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=1 group by i.itemId) as tbl);
-        if json_value(pielabel,'$[0]') = "" THEN
+        if json_value(pielabel,'$[0]') = "" or pieLabel is null THEN
         	set pielabel = (select JSON_ARRAY());
           set piedata = (select JSON_ARRAY());
          end if;
        set pie = (select JSON_OBJECT("pieLabel",pielabel,"pieData",piedata));
+       
+      
 
-       set returnpielabel =  (select JSON_ARRAYAGG(name) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=0 group by i.itemId) as tbl);
-        set returnpiedata =(select JSON_ARRAYAGG(cast(qty as signed)) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=0 group by i.itemId) as tbl);
-        if json_value(returnpielabel,'$[0]') = "" THEN
-        	set returnpielabel = (select JSON_ARRAY());
-          set returnpiedata = (select JSON_ARRAY());
-         end if;
+      SET SESSION group_concat_max_len = 1000000;
+	set itemData = (select concat('[',GROUP_CONCAT(JSON_OBJECT('itemId',itemId,
+                               'iName',iName,
+                               'tStock',tstock)),']') 
+        from  
+        (
+        select i.itemId ,i.iName,i.mRent,i.tstock,i.status from items i GROUP BY i.itemId
+        ) as rh);
+
+	if JSON_EXTRACT(itemData,'$[0]') is null THEN
+    	set itemData = (select JSON_ARRAY());
+    end if;
+
+	    set icnt = JSON_LENGTH(itemData) - 1; 
+		
+		set datas = (SELECT JSON_ARRAY());
+		set fdata = (SELECT JSON_ARRAY());
+		set i = 0;
+		OuterLoop : LOOP
+			IF  i > icnt THEN
+				LEAVE OuterLoop;
+			END IF;	
+				set items = (select json_extract(itemData, concat('$[',i,']')));
+
+				set rentStock = (SELECT SUM(rhc.qty) from renthistory rhc  
+                                            where 
+                                            rhc.`itemId` = JSON_VALUE(items,'$.itemId') 
+                                            AND rhc.status = 1);
+
+				set returnStock = (SELECT SUM(rhc.qty) from renthistory rhc  
+                                            where 
+                                            rhc.`itemId` = JSON_VALUE(items,'$.itemId') 
+                                            AND rhc.status = 0);
+
+
+				set pStock = IFNULL(rentStock-IFNULL(returnStock,0),0);
+				set aStock = IFNULL(JSON_VALUE(items,'$.tStock')-pStock,0);
+
+				set items = (select JSON_SET(items,'$.aStock',aStock));
+
+				set fdata = (select JSON_ARRAY_APPEND(fdata,'$',items));
+		set i = i+1;
+		END LOOP;
+       
+       set ydata = (select concat('[',group_concat(JSON_OBJECT("itemId",dc.itemId,"stock",dc.Stock)),']') from dailyStockChild dc inner join dailyStockMaster dm on dm.dsmId=dc.dsmId where DATE_FORMAT(dm.date,'%Y-%m-%d') = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+      if JSON_EXTRACT(ydata,'$[0]') is null THEN
+    	set ydata = (select JSON_ARRAY());
+    end if;
+      set returnpielabel = (select JSON_ARRAY());
+      set returnpiedata = (select JSON_ARRAY());
+      set icnt = JSON_LENGTH(fdata) - 1; 
+		  set i = 0;
+		  OuterLoop : LOOP
+			IF  i > icnt THEN
+				LEAVE OuterLoop;
+			END IF;	
+        set items = (select json_extract(fdata, concat('$[',i,']')));
+        set jcnt = JSON_LENGTH(ydata) - 1;
+        set value1 = 0;
+        set j = 0;
+        
+        Inners : LOOP
+			IF  j > jcnt THEN
+				LEAVE Inners;
+			END IF;	
+        set items1 = (select json_extract(ydata, concat('$[',j,']')));
+        IF JSON_VALUE(items1,'$.itemId') = JSON_VALUE(items,'$.itemId') then
+          set value1 = JSON_VALUE(items1,'$.stock');
+          LEAVE Inners;
+        END IF;
+        set j = j + 1;
+        END LOOP;
+
+
+        set jcnt = JSON_LENGTH(pielabel) - 1; 
+        set j = 0;
+        set value2 = 0;
+        Inners : LOOP
+			IF  j > jcnt THEN
+				LEAVE Inners;
+			END IF;	
+        IF JSON_UNQUOTE(JSON_EXTRACT(pielabel, CONCAT('$[', j, ']'))) = JSON_UNQUOTE(JSON_EXTRACT(items, '$.iName')) THEN
+          set value2 = (select JSON_UNQUOTE(JSON_EXTRACT(piedata, CONCAT('$[', j, ']'))));
+          LEAVE Inners;
+        END IF;
+        set j = j + 1;
+        END LOOP;
+        set calc = JSON_VALUE(items,'$.aStock') + value2 - value1;
+        if calc > 0 then
+          set returnpielabel = (select JSON_ARRAY_APPEND(returnpielabel,'$',JSON_UNQUOTE(JSON_EXTRACT(items, '$.iName'))));
+          set returnpiedata = (select JSON_ARRAY_APPEND(returnpiedata,'$',calc));
+        end if;
+      set i = i + 1;
+      END LOOP;
+      
+      --  set returnpielabel =  (select JSON_ARRAYAGG(name) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=0 group by i.itemId) as tbl);
+      --   set returnpiedata =(select JSON_ARRAYAGG(cast(qty as signed)) from (select i.iName as name ,sum(rh.qty) as qty from renthistory rh INNER JOIN items i on rh.itemId = i.itemId where rh.hDate = curdate() and rh.status=0 group by i.itemId) as tbl);
+      --   if json_value(returnpielabel,'$[0]') = "" THEN
+      --   	set returnpielabel = (select JSON_ARRAY());
+      --     set returnpiedata = (select JSON_ARRAY());
+      --    end if;
        set returnpie = (select JSON_OBJECT("returnPieLabel",returnpielabel,"returnPieData",returnpiedata));
+
         
    set total = (select JSON_OBJECT("tCustomer",cast(tcustomer as signed),"tItem",cast(titems as signed),"tAmount",cast(tamount as decimal(20,2)),"tuser",cast(tusers as signed)));
     set graph = (select JSON_OBJECT("label",dates,"data",grphData));
