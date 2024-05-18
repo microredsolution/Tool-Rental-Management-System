@@ -416,6 +416,73 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1200006` (IN `request` JS
 		select JSON_OBJECT('errorCode',1,'result',itemData) as result;
 END$$
 
+CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1200007` (IN `request` JSON)   BEGIN
+
+	DECLARE itemData JSON;
+	DECLARE items JSON;
+	DECLARE datas JSON;
+	DECLARE fdata JSON;
+	DECLARE i int;
+	DECLARE icnt int;
+	DECLARE aStock int;
+	DECLARE rentStock int;
+	DECLARE returnStock int;
+	DECLARE pStock int;
+  DECLARE cRate decimal;
+  SET SESSION group_concat_max_len = 1000000;
+	set itemData = (select concat('[',GROUP_CONCAT(JSON_OBJECT('itemId',itemId,
+                               'iName',iName,
+                               'mRent',mRent,
+                               'tStock',tstock,
+                               'status',status)),']') 
+        from  
+        (
+        select i.itemId ,i.iName,i.mRent,i.tstock,i.status from items i GROUP BY i.itemId
+        ) as rh);
+
+	if JSON_EXTRACT(itemData,'$[0]') is null THEN
+    	set itemData = (select JSON_ARRAY());
+    end if;
+
+	    set icnt = JSON_LENGTH(itemData) - 1; 
+		
+		set datas = (SELECT JSON_ARRAY());
+		set fdata = (SELECT JSON_ARRAY());
+		set i = 0;
+		OuterLoop : LOOP
+			IF  i > icnt THEN
+				LEAVE OuterLoop;
+			END IF;	
+				set items = (select json_extract(itemData, concat('$[',i,']')));
+
+				set rentStock = (SELECT SUM(rhc.qty) from renthistory rhc  
+                                            where 
+                                            rhc.`itemId` = JSON_VALUE(items,'$.itemId') 
+                                            AND rhc.status = 1);
+
+				set returnStock = (SELECT SUM(rhc.qty) from renthistory rhc  
+                                            where 
+                                            rhc.`itemId` = JSON_VALUE(items,'$.itemId') 
+                                            AND rhc.status = 0);
+
+
+				set pStock = IFNULL(rentStock-IFNULL(returnStock,0),0);
+				set aStock = IFNULL(JSON_VALUE(items,'$.tStock')-pStock,0);
+
+        set cRate = (select rate from ratecard where itemId = JSON_VALUE(items,'$.itemId') and cId = JSON_VALUE(request,'$.cId'));
+        
+        if cRate is not null then
+          set items = (select JSON_SET(items,'$.mRent',cRate));
+        end if;
+
+				set items = (select JSON_SET(items,'$.aStock',aStock));
+
+				set fdata = (select JSON_ARRAY_APPEND(fdata,'$',items));
+		set i = i+1;
+		END LOOP;
+		select JSON_OBJECT('errorCode',1,'result',fdata) as result;
+END$$
+
 CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1300001` (IN `request` JSON)   BEGIN
 	declare stats int;
     declare qtty int;

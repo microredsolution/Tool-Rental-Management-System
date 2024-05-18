@@ -71,12 +71,11 @@ export default function FullScreenDialog(details) {
 
   // const [itemsArr,setItemsArr]=useState([{}])
   useEffect(() => {
-
-
     const requestdata2 = {
       "type": "SP_CALL",
-      "requestId": 1200005,
+      "requestId": 1200007,
       request: {
+        cId:sessionStorage.getItem("Cid")
       }
     }
 
@@ -296,7 +295,7 @@ export default function FullScreenDialog(details) {
                 <FormControl fullWidth key={ind}>
                   <InputLabel id={`item${ind}`}>Items</InputLabel>
                   <Select
-                    sx={{ minWidth: 300 }}
+                    // sx={{ minWidth: 300 }}
                     labelId={`item-label-${ind}`}
                     id={`item${ind}`}
                     label="Items"
@@ -310,7 +309,7 @@ export default function FullScreenDialog(details) {
                   >
                     {items.map(({ label, rentAmt, itemId }, index) => (
                       <MenuItem key={index} value={itemId}>
-                        {label} - ₹{rentAmt}
+                        {label} {/*  - ₹{rentAmt} */}
                       </MenuItem>
                     ))}
                   </Select>

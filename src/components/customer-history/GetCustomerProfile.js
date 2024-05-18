@@ -126,7 +126,7 @@ console.log(details);
                 {data.altermobile &&
                   <Stack direction={"row"} justifyContent={"space-between"}>
                     <Typography variant="h6">Alternative Number</Typography>
-                    <Typography> {data.mobile}</Typography>
+                    <Typography> {data.altermobile}</Typography>
                   </Stack>
                 }
 
