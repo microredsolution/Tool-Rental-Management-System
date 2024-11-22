@@ -1073,20 +1073,19 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1700005` (IN `request` JS
       end if;
       set i = i+1;
     END LOOP;
-    set paid = (select sum(amount) from paymentcollection where cId = json_value(request,"$.cId"));
+    set paid = (select sum(amount) from paymentcollection where cId = JSON_VALUE(request,"$.cId"));
     if itemsFinal is null or JSON_VALUE(itemsFinal,'$[0]') is null then
       set itemsFinal = (select JSON_ARRAY());
     end if;
     set datas = (select JSON_ARRAY_APPEND(datas, '$', itemsFinal));
     set payments = (select concat("[",GROUP_CONCAT(JSON_OBJECT("pId",pId,"date",DATE_FORMAT(pDate, "%d-%m-%Y"),"amount",amount)),"]") from paymentcollection where cId = JSON_VALUE(request,"$.cId"));
-    
-    if payments is null or JSON_VALUE(payments,'$[0]') is null then
+    if payments is null then
       set payments = (select JSON_ARRAY());
     end if;
 
     set datas = (select JSON_ARRAY_APPEND(datas, '$', payments));
     set extra = (select concat("[",GROUP_CONCAT(JSON_OBJECT("expId",expId,"date",DATE_FORMAT(date, "%d-%m-%Y"),"amount",amount,"note",note,"status",status)),"]") from extrapayment where cId = JSON_VALUE(request,"$.cId"));
-    if extra is null or JSON_VALUE(extra,'$[0]') is null then
+    if extra is null then
       set extra = (select JSON_ARRAY());
     end if;
     
@@ -1342,7 +1341,7 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `2300006` (IN `request` JS
     DECLARE cntitem int;
     declare activeCust int;
      SET SESSION group_concat_max_len = 10000000;
-     SET SESSION max_execution_time=20000;
+    --  SET SESSION max_execution_time=20000;
      SET session wait_timeout=600;
     set itemData = JSON_VALUE(request,'$.items') ;
         if JSON_LENGTH(itemData) = 0  or itemData is null then 
