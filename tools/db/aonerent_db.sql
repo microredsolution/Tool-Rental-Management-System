@@ -938,7 +938,7 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1700005` (IN `request` JS
     if rents is null or JSON_EXTRACT(rents,'$[0]') is null then
       set rents = (select JSON_ARRAY());
     end if;
-    if itemData is null or JSON_VALUE(itemData,'$[0]') is null then
+    if itemData is null or JSON_EXTRACT(itemData,'$[0]') is null then
       set itemData = (select JSON_ARRAY());
     end if;
     set cnt = JSON_LENGTH(rents) - 1;
@@ -1050,12 +1050,12 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1700005` (IN `request` JS
 				LEAVE  cmpinsert;
 			END IF;
       set cmpData1 = (select json_extract(itemsFinal, concat('$[',i,']')));
-      set total = total + JSON_VALUE(cmpData1,"$.amount");
+      set total = total + JSON_VALUE(JSON_UNQUOTE(cmpData1),"$.amount");
       set i = i+1;
     END LOOP;
 
     set cmpData = (select concat('[',GROUP_CONCAT(JSON_OBJECT("amount",amount,"status",status)),']')  from extrapayment where cId = JSON_VALUE(request,"$.cId"));
-    if cmpData is null then
+    if cmpData is null or JSON_EXTRACT(cmpData,'$[0]') is null  then
       set cmpData = (select JSON_ARRAY());
     end if;
 
@@ -1074,18 +1074,18 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `1700005` (IN `request` JS
       set i = i+1;
     END LOOP;
     set paid = (select sum(amount) from paymentcollection where cId = JSON_VALUE(request,"$.cId"));
-    if itemsFinal is null or JSON_VALUE(itemsFinal,'$[0]') is null then
+    if itemsFinal is null or JSON_EXTRACT(itemsFinal,'$[0]') is null  then
       set itemsFinal = (select JSON_ARRAY());
     end if;
     set datas = (select JSON_ARRAY_APPEND(datas, '$', itemsFinal));
     set payments = (select concat("[",GROUP_CONCAT(JSON_OBJECT("pId",pId,"date",DATE_FORMAT(pDate, "%d-%m-%Y"),"amount",amount)),"]") from paymentcollection where cId = JSON_VALUE(request,"$.cId"));
-    if payments is null then
+    if payments is null or JSON_EXTRACT(payments,'$[0]') is null then
       set payments = (select JSON_ARRAY());
     end if;
 
     set datas = (select JSON_ARRAY_APPEND(datas, '$', payments));
     set extra = (select concat("[",GROUP_CONCAT(JSON_OBJECT("expId",expId,"date",DATE_FORMAT(date, "%d-%m-%Y"),"amount",amount,"note",note,"status",status)),"]") from extrapayment where cId = JSON_VALUE(request,"$.cId"));
-    if extra is null then
+    if extra is null or JSON_EXTRACT(extra,'$[0]') is null then
       set extra = (select JSON_ARRAY());
     end if;
     
@@ -1258,6 +1258,7 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `2300005` (IN `request` JS
 		END LOOP;
        
        set ydata = (select concat('[',group_concat(JSON_OBJECT("itemId",dc.itemId,"stock",dc.Stock)),']') from dailyStockChild dc inner join dailyStockMaster dm on dm.dsmId=dc.dsmId where DATE_FORMAT(dm.date,'%Y-%m-%d') = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+      
       if JSON_EXTRACT(ydata,'$[0]') is null THEN
     	set ydata = (select JSON_ARRAY());
     end if;
@@ -1300,9 +1301,9 @@ CREATE DEFINER=`aonerent_admin`@`localhost` PROCEDURE `2300005` (IN `request` JS
         END IF;
         set j = j + 1;
         END LOOP;
-        set calc = JSON_VALUE(items,'$.aStock') + value2 - value1;
+        set calc = JSON_VALUE(JSON_UNQUOTE(items),'$.aStock') + value2 - value1;
         if calc > 0 then
-          set returnpielabel = (select JSON_ARRAY_APPEND(returnpielabel,'$',JSON_UNQUOTE(JSON_EXTRACT(items, '$.iName'))));
+          set returnpielabel = (select JSON_ARRAY_APPEND(returnpielabel,'$',JSON_UNQUOTE(JSON_EXTRACT(JSON_UNQUOTE(items), '$.iName'))));
           set returnpiedata = (select JSON_ARRAY_APPEND(returnpiedata,'$',calc));
         end if;
       set i = i + 1;
